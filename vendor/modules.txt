@@ -3,6 +3,21 @@
 github.com/heroiclabs/nakama-common/api
 github.com/heroiclabs/nakama-common/rtapi
 github.com/heroiclabs/nakama-common/runtime
+# github.com/samber/lo v1.46.0
+## explicit; go 1.18
+github.com/samber/lo
+github.com/samber/lo/internal/constraints
+github.com/samber/lo/internal/rand
+# golang.org/x/text v0.16.0
+## explicit; go 1.18
+golang.org/x/text/cases
+golang.org/x/text/internal
+golang.org/x/text/internal/language
+golang.org/x/text/internal/language/compact
+golang.org/x/text/internal/tag
+golang.org/x/text/language
+golang.org/x/text/transform
+golang.org/x/text/unicode/norm
 # google.golang.org/protobuf v1.34.1
 ## explicit; go 1.17
 google.golang.org/protobuf/encoding/prototext
