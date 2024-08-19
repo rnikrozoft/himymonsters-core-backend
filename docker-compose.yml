@@ -16,7 +16,9 @@ services:
       - data:/var/lib/postgresql/data
 
   nakama:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.mac
     depends_on:
       - postgres
     entrypoint:

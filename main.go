@@ -31,6 +31,11 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 		return err
 	}
 
+	if err := initializer.RegisterRpc("kill_monster", modules.RpcKillMonster); err != nil {
+		logger.Error(err.Error())
+		return err
+	}
+
 	logger.Info("Plugin loaded in '%d' msec.", time.Since(initStart).Milliseconds())
 	return nil
 }
