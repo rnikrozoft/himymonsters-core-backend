@@ -1,3 +1,6 @@
+# github.com/google/uuid v1.6.0
+## explicit
+github.com/google/uuid
 # github.com/heroiclabs/nakama-common v1.32.0
 ## explicit; go 1.19
 github.com/heroiclabs/nakama-common/api

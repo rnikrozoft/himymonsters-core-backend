@@ -9,11 +9,6 @@ import (
 	"github.com/rnikrozoft/hellomymonsters-backend/modules"
 )
 
-const (
-	rpcIdCanClaimDailyReward = "canclaimdailyreward_go"
-	rpcIdClaimDailyReward    = "claimdailyreward_go"
-)
-
 // noinspection GoUnusedExportedFunction
 func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, initializer runtime.Initializer) error {
 	initStart := time.Now()
@@ -22,19 +17,19 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	// 	return err
 	// }
 
-	// if err := initializer.RegisterRpc(rpcIdClaimDailyReward, modules.RpcClaimDailyReward); err != nil {
-	// 	return err
-	// }
+	if err := initializer.RegisterRpc("steal_monster", modules.RpcStealMonster); err != nil {
+		return err
+	}
 
 	if err := initializer.RegisterRpc("register", modules.RpcUserRegister); err != nil {
 		logger.Error(err.Error())
 		return err
 	}
 
-	if err := initializer.RegisterRpc("kill_monster", modules.RpcKillMonster); err != nil {
-		logger.Error(err.Error())
-		return err
-	}
+	// if err := initializer.RegisterRpc("kill_monster", modules.RpcKillMonster); err != nil {
+	// 	logger.Error(err.Error())
+	// 	return err
+	// }
 
 	logger.Info("Plugin loaded in '%d' msec.", time.Since(initStart).Milliseconds())
 	return nil

@@ -4,7 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"math/rand"
+	"time"
 
+	"github.com/google/uuid"
 	"github.com/heroiclabs/nakama-common/runtime"
 	"github.com/rnikrozoft/hellomymonsters-backend/model"
 	"github.com/samber/lo"
@@ -33,55 +36,46 @@ func RpcUserRegister(ctx context.Context, logger runtime.Logger, db *sql.DB, nk 
 		return "", err
 	}
 
+	rand.Seed(time.Now().UnixNano())
+	min := 1
+	max := 10
+
 	m := model.MyMonsters{
 		Monsters: []model.Monster{
 			{
-				Name:        "Monster 1",
-				MonsterType: "monster_type_1",
+				ID:                 lo.Must1(uuid.NewV7()),
+				Name:               "monster_1",
+				MonsterType:        "monster_type_1",
+				StealChangeSuccess: rand.Intn(max-min+1) + min,
+				KillChangeSuccess:  rand.Intn(max-min+1) + min,
 			},
 			{
-				Name:        "Monster 2",
-				MonsterType: "monster_type_1",
+				ID:                 lo.Must1(uuid.NewV7()),
+				Name:               "monster_2",
+				MonsterType:        "monster_type_1",
+				StealChangeSuccess: rand.Intn(max-min+1) + min,
+				KillChangeSuccess:  rand.Intn(max-min+1) + min,
 			},
 			{
-				Name:        "Monster 3",
-				MonsterType: "monster_type_1",
+				ID:                 lo.Must1(uuid.NewV7()),
+				Name:               "monster_3",
+				MonsterType:        "monster_type_1",
+				StealChangeSuccess: rand.Intn(max-min+1) + min,
+				KillChangeSuccess:  rand.Intn(max-min+1) + min,
 			},
 			{
-				Name:        "Monster 4",
-				MonsterType: "monster_type_1",
+				ID:                 lo.Must1(uuid.NewV7()),
+				Name:               "monster_4",
+				MonsterType:        "monster_type_1",
+				StealChangeSuccess: rand.Intn(max-min+1) + min,
+				KillChangeSuccess:  rand.Intn(max-min+1) + min,
 			},
 			{
-				Name:        "Monster 5",
-				MonsterType: "monster_type_1",
-			},
-			{
-				Name:        "Monster 6",
-				MonsterType: "monster_type_1",
-			},
-			{
-				Name:        "Monster 7",
-				MonsterType: "monster_type_1",
-			},
-			{
-				Name:        "Monster 8",
-				MonsterType: "monster_type_1",
-			},
-			{
-				Name:        "Monster 9",
-				MonsterType: "monster_type_1",
-			},
-			{
-				Name:        "Monster 10",
-				MonsterType: "monster_type_1",
-			},
-			{
-				Name:        "Monster 11",
-				MonsterType: "monster_type_1",
-			},
-			{
-				Name:        "Monster 12",
-				MonsterType: "monster_type_1",
+				ID:                 lo.Must1(uuid.NewV7()),
+				Name:               "monster_5",
+				MonsterType:        "monster_type_1",
+				StealChangeSuccess: rand.Intn(max-min+1) + min,
+				KillChangeSuccess:  rand.Intn(max-min+1) + min,
 			},
 		},
 	}

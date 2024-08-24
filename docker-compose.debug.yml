@@ -17,7 +17,7 @@ services:
   nakama:
     build:
         context: .
-        dockerfile: Dockerfile.mac.debug
+        dockerfile: Dockerfile.debug
     entrypoint:
       - "/bin/sh"
       - "-ecx"
