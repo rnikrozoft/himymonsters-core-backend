@@ -16,7 +16,11 @@ type Monster struct {
 	KillChangeSuccess  int       `json:"kill_change_success,omitempty"`
 }
 
+type Record struct {
+	Monsters []Monster `json:"monsters"`
+}
+
 type StealOrkill struct {
-	FriendId  string    `json:"friend_id,omitempty"`
-	MonsterId uuid.UUID `json:"monster_id,omitempty"`
+	OwnerID   string    `json:"owner_id,omitempty"`
+	MonsterID uuid.UUID `json:"monster_id,omitempty"`
 }

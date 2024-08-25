@@ -17,7 +17,7 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	// 	return err
 	// }
 
-	if err := initializer.RegisterRpc("steal_monster", modules.RpcStealMonster); err != nil {
+	if err := initializer.RegisterRpc("kill_monster", modules.RpcKillMonster); err != nil {
 		return err
 	}
 
