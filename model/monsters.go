@@ -5,7 +5,7 @@ import (
 )
 
 type MyMonsters struct {
-	Monsters []Monster `json:"monsters,omitempty"`
+	Monsters []Monster `json:"monsters"`
 }
 
 type Monster struct {

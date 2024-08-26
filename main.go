@@ -13,23 +13,20 @@ import (
 func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, initializer runtime.Initializer) error {
 	initStart := time.Now()
 
-	// if err := initializer.RegisterRpc(rpcIdCanClaimDailyReward, modules.RpcCanClaimDailyReward); err != nil {
-	// 	return err
-	// }
-
-	if err := initializer.RegisterRpc("kill_monster", modules.RpcKillMonster); err != nil {
-		return err
+	rpcRegistrations := map[string]func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error){
+		"register":           modules.RpcUserRegister,
+		"get_monsters":       modules.RpcGetMonsters,
+		"kill_monster":       modules.RpcKillMonster,
+		"free_gachapon":      modules.RpcFreeGachapon,
+		"cheat_add_monsters": modules.RpcCheatAddMonsters,
 	}
 
-	if err := initializer.RegisterRpc("register", modules.RpcUserRegister); err != nil {
-		logger.Error(err.Error())
-		return err
+	for name, handler := range rpcRegistrations {
+		if err := initializer.RegisterRpc(name, handler); err != nil {
+			logger.Error(err.Error())
+			return err
+		}
 	}
-
-	// if err := initializer.RegisterRpc("kill_monster", modules.RpcKillMonster); err != nil {
-	// 	logger.Error(err.Error())
-	// 	return err
-	// }
 
 	logger.Info("Plugin loaded in '%d' msec.", time.Since(initStart).Milliseconds())
 	return nil
