@@ -31,8 +31,8 @@ func RpcUserRegister(ctx context.Context, logger runtime.Logger, db *sql.DB, nk 
 				UserID:     userID,
 				Value: string(
 					lo.Must1(
-						json.Marshal(map[string]bool{
-							"is_can_caim": true,
+						json.Marshal(model.Gachapon{
+							IsCanCaim: true,
 						}),
 					),
 				),
