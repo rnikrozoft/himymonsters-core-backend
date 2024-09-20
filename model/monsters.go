@@ -9,11 +9,11 @@ type MyMonsters struct {
 }
 
 type Monster struct {
-	ID                 uuid.UUID `json:"id,omitempty"`
-	Name               string    `json:"name,omitempty"`
-	MonsterType        string    `json:"monster_type,omitempty"`
-	StealChangeSuccess int       `json:"steal_change_success,omitempty"`
-	KillChangeSuccess  int       `json:"kill_change_success,omitempty"`
+	ID          uuid.UUID           `json:"id,omitempty"`
+	Name        string              `json:"name,omitempty"`
+	MonsterType string              `json:"monster_type,omitempty"`
+	Steal       StealOrKillSettings `json:"steal,omitempty"`
+	Kill        StealOrKillSettings `json:"kill,omitempty"`
 }
 
 type Record struct {
@@ -23,4 +23,9 @@ type Record struct {
 type StealOrkill struct {
 	OwnerID   string    `json:"owner_id,omitempty"`
 	MonsterID uuid.UUID `json:"monster_id,omitempty"`
+}
+
+type StealOrKillSettings struct {
+	RateSuccess int   `json:"rate_success"`
+	Price       int64 `json:"price"`
 }
