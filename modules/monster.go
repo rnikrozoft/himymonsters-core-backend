@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"math/rand"
 
 	"github.com/google/uuid"
@@ -36,11 +35,17 @@ func RpcCheatAddMonsters(ctx context.Context, logger runtime.Logger, db *sql.DB,
 
 	for i := 0; i < req.Amount; i++ {
 		myMonster.Monsters = append(myMonster.Monsters, model.Monster{
-			ID:                 uuid.New(),
-			Name:               "monster",
-			MonsterType:        "ork_1",
-			StealChangeSuccess: rand.Intn(10),
-			KillChangeSuccess:  rand.Intn(10),
+			ID:          uuid.New(),
+			Name:        "monster",
+			MonsterType: "fallen_1",
+			Steal: model.StealOrKillSettings{
+				RateSuccess: rand.Intn(10),
+				Price:       int64(rand.Intn(10)),
+			},
+			Kill: model.StealOrKillSettings{
+				RateSuccess: rand.Intn(10),
+				Price:       int64(rand.Intn(10)),
+			},
 		})
 	}
 
@@ -62,12 +67,20 @@ func RpcCheatAddMonsters(ctx context.Context, logger runtime.Logger, db *sql.DB,
 	}
 	return payload, nil
 }
+
 func RpcGetMonsters(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
+	res := &model.MyMonsters{
+		Monsters: make([]model.Monster, 0),
+	}
+
 	type owner struct {
 		OwnerID string `json:"owner_id"`
 	}
 	var req owner
-	json.Unmarshal([]byte(payload), &req)
+	if err := json.Unmarshal([]byte(payload), &req); err != nil {
+		logger.WithField("err", err).Error(err.Error())
+		return utility.Response(res), err
+	}
 
 	objectIds := []*runtime.StorageRead{
 		{
@@ -77,12 +90,9 @@ func RpcGetMonsters(ctx context.Context, logger runtime.Logger, db *sql.DB, nk r
 		},
 	}
 
-	res := &model.MyMonsters{
-		Monsters: make([]model.Monster, 0),
-	}
 	records, err := nk.StorageRead(ctx, objectIds)
 	if err != nil {
-		logger.WithField("err", err).Error("Storage read error.")
+		logger.WithField("err", err).Error(err.Error())
 		return utility.Response(res), err
 	}
 
@@ -91,7 +101,7 @@ func RpcGetMonsters(ctx context.Context, logger runtime.Logger, db *sql.DB, nk r
 	}
 
 	if err := json.Unmarshal([]byte(records[0].Value), res); err != nil {
-		logger.WithField("err", err).Error("JSON unmarshal error.")
+		logger.WithField("err", err).Error(err.Error())
 		return utility.Response(res), err
 	}
 
@@ -99,206 +109,272 @@ func RpcGetMonsters(ctx context.Context, logger runtime.Logger, db *sql.DB, nk r
 }
 
 func RpcKillMonster(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
+	killed := "false"
+
+	userID, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
+	if !ok {
+		return killed, errors.New("errNoUserIdFound")
+	}
+
+	account, err := nk.AccountGetId(ctx, userID)
+	if err != nil {
+		logger.WithField("err", err).Error("Get accounts error.")
+		return killed, err
+	}
+
+	w := &model.Wallet{}
+	if err := json.Unmarshal([]byte(account.Wallet), w); err != nil {
+		logger.WithField("err", err).Error("cannot unmarshal")
+		return killed, err
+	}
 
 	var p *model.StealOrkill
-	json.Unmarshal([]byte(payload), &p)
+	if err := json.Unmarshal([]byte(payload), &p); err != nil {
+		logger.WithField("err", err).Error("cannot unmarshal")
+		return killed, err
+	}
 
-	objectIds := []*runtime.StorageRead{
+	records, err := nk.StorageRead(ctx, []*runtime.StorageRead{
 		{
-			Collection: "Monsters",
-			Key:        "MyMonsters",
+			Collection: constant.Collection_Monsters,
+			Key:        constant.Key_MyMonsters,
 			UserID:     p.OwnerID,
 		},
-	}
-
-	killed := "false"
-	records, err := nk.StorageRead(ctx, objectIds)
+	})
 	if err != nil {
 		logger.WithField("err", err).Error("Storage read error.")
+		return killed, err
+	}
+
+	if len(records) == 0 {
+		logger.WithField("err", err).Error("no found records")
+		return killed, errors.New("errNoRecordFound")
+	}
+
+	var record model.Record
+	if err := json.Unmarshal([]byte(records[0].Value), &record); err != nil {
+		logger.WithField("err", err).Error("cannot unmarshal")
+		return killed, err
+	}
+
+	if len(record.Monsters) == 0 {
+		logger.Error("not found records")
+		return killed, errors.New("errNoRecord.Monsters")
+	}
+
+	monsters := lo.Associate(record.Monsters, func(f model.Monster) (uuid.UUID, model.Monster) {
+		return f.ID, f
+	})
+
+	monster := monsters[p.MonsterID]
+
+	if w.Coin < monster.Kill.Price {
+		return killed, nil //coin not enougth
+	}
+
+	max := 10 - monster.Kill.RateSuccess
+	if max <= 0 {
+		delete(monsters, p.MonsterID)
+		killed = "true"
 	} else {
+		chooser, _ := weightedrand.NewChooser(
+			weightedrand.NewChoice(true, monster.Kill.RateSuccess),
+			weightedrand.NewChoice(false, max),
+		)
+		result := chooser.Pick()
 
-		var record model.Record
-		err := json.Unmarshal([]byte(records[0].Value), &record)
-		if err != nil {
-			fmt.Println("Error unmarshalling JSON:", err)
-		}
-
-		monsters := lo.Associate(record.Monsters, func(f model.Monster) (uuid.UUID, model.Monster) {
-			return f.ID, f
-		})
-
-		monster := monsters[p.MonsterID]
-		max := 10 - monster.KillChangeSuccess
-		if max <= 0 {
+		if result {
 			delete(monsters, p.MonsterID)
 			killed = "true"
-		} else {
-			chooser, _ := weightedrand.NewChooser(
-				weightedrand.NewChoice(true, monster.KillChangeSuccess),
-				weightedrand.NewChoice(false, max),
-			)
-			result := chooser.Pick()
-
-			if result {
-				delete(monsters, p.MonsterID)
-				killed = "true"
-			}
-		}
-
-		if killed == "true" {
-			value := []model.Monster{}
-			for _, v := range monsters {
-				new := model.Monster{
-					ID:                 v.ID,
-					Name:               v.Name,
-					MonsterType:        v.MonsterType,
-					StealChangeSuccess: v.StealChangeSuccess,
-					KillChangeSuccess:  v.KillChangeSuccess,
-				}
-				value = append(value, new)
-			}
-
-			myMonsters := model.MyMonsters{Monsters: value}
-			objectIds := []*runtime.StorageWrite{
-				{
-					Collection:      "Monsters",
-					Key:             "MyMonsters",
-					UserID:          p.OwnerID,
-					Value:           string(lo.Must1(json.Marshal(myMonsters))),
-					PermissionWrite: 1,
-					PermissionRead:  2,
-				},
-			}
-
-			if _, err := nk.StorageWrite(ctx, objectIds); err != nil {
-				logger.WithField("err", err).Error("Storage write error.")
-			}
 		}
 	}
 
+	changeset := map[string]int64{
+		"coin": -monster.Kill.Price,
+	}
+	metadata := map[string]interface{}{
+		"kill_success": killed,
+	}
+	if _, _, err := nk.WalletUpdate(ctx, userID, changeset, metadata, true); err != nil {
+		logger.WithField("err", err).Error("Wallet update error.")
+		return killed, err
+	}
+
+	if killed == "true" {
+		monsters := lo.MapToSlice(monsters, func(k uuid.UUID, v model.Monster) model.Monster {
+			return v
+		})
+
+		friendMonsters := model.MyMonsters{
+			Monsters: monsters,
+		}
+
+		new := []*runtime.StorageWrite{
+			{
+				Collection:      constant.Collection_Monsters,
+				Key:             constant.Key_MyMonsters,
+				UserID:          p.OwnerID,
+				Value:           string(lo.Must1(json.Marshal(friendMonsters))),
+				PermissionWrite: 1,
+				PermissionRead:  2,
+			},
+		}
+
+		if _, err := nk.StorageWrite(ctx, new); err != nil {
+			logger.WithField("err", err).Error("Storage write error.")
+			return "false", err
+		}
+	}
 	return killed, nil
 }
 
 func RpcStealMonster(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
+	steal := "false"
 
-	var p *model.StealOrkill
-	json.Unmarshal([]byte(payload), &p)
-
-	objectIds := []*runtime.StorageRead{
-		{
-			Collection: "Monsters",
-			Key:        "MyMonsters",
-			UserID:     p.OwnerID,
-		},
+	userID, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
+	if !ok {
+		return steal, errors.New("errNoUserIdFound")
 	}
 
-	steal := "false"
-	records, err := nk.StorageRead(ctx, objectIds)
+	account, err := nk.AccountGetId(ctx, userID)
 	if err != nil {
-		logger.WithField("err", err).Error("Storage read error.")
+		logger.WithField("err", err).Error("Get accounts error.")
+		return steal, err
+	}
+
+	w := &model.Wallet{}
+	if err := json.Unmarshal([]byte(account.Wallet), w); err != nil {
+		logger.WithField("err", err).Error("cannot unmarshal")
+		return steal, err
+	}
+
+	var p *model.StealOrkill
+	if err := json.Unmarshal([]byte(payload), &p); err != nil {
+		logger.WithField("err", err).Error(err.Error())
+		return steal, err
+	}
+
+	records, err := nk.StorageRead(ctx, []*runtime.StorageRead{
+		{
+			Collection: constant.Collection_Monsters,
+			Key:        constant.Key_MyMonsters,
+			UserID:     p.OwnerID,
+		},
+	})
+	if err != nil {
+		logger.WithField("err", err).Error(err.Error())
+		return steal, err
+	}
+
+	if len(records) == 0 {
+		return steal, errors.New("not found any records")
+	}
+
+	var record model.Record
+	if err := json.Unmarshal([]byte(records[0].Value), &record); err != nil {
+		logger.WithField("err", err).Error(err.Error())
+		return steal, err
+	}
+
+	if len(record.Monsters) == 0 {
+		return steal, errors.New("not found any monsters")
+	}
+
+	monsters := lo.Associate(record.Monsters, func(f model.Monster) (uuid.UUID, model.Monster) {
+		return f.ID, f
+	})
+
+	monster := monsters[p.MonsterID]
+
+	if w.Coin < monster.Steal.Price {
+		return steal, nil //coin not enougth
+	}
+
+	max := 10 - monster.Steal.RateSuccess
+	if max <= 0 {
+		delete(monsters, p.MonsterID)
+		steal = "true"
 	} else {
+		chooser, _ := weightedrand.NewChooser(
+			weightedrand.NewChoice(true, monster.Steal.RateSuccess),
+			weightedrand.NewChoice(false, max),
+		)
+		result := chooser.Pick()
 
-		var record model.Record
-		err := json.Unmarshal([]byte(records[0].Value), &record)
-		if err != nil {
-			fmt.Println("Error unmarshalling JSON:", err)
-		}
-
-		monsters := lo.Associate(record.Monsters, func(f model.Monster) (uuid.UUID, model.Monster) {
-			return f.ID, f
-		})
-
-		monster := monsters[p.MonsterID]
-		max := 10 - monster.StealChangeSuccess
-		if max <= 0 {
+		if result {
 			delete(monsters, p.MonsterID)
 			steal = "true"
-		} else {
-			chooser, _ := weightedrand.NewChooser(
-				weightedrand.NewChoice(true, monster.KillChangeSuccess),
-				weightedrand.NewChoice(false, max),
-			)
-			result := chooser.Pick()
+		}
+	}
 
-			if result {
-				delete(monsters, p.MonsterID)
-				steal = "true"
-			}
+	changeset := map[string]int64{
+		"coin": -monster.Steal.Price,
+	}
+	metadata := map[string]interface{}{
+		"steal_success": steal,
+	}
+	if _, _, err := nk.WalletUpdate(ctx, userID, changeset, metadata, true); err != nil {
+		logger.WithField("err", err).Error(err.Error())
+		return steal, err
+	}
+
+	if steal == "true" {
+		monsters := lo.MapToSlice(monsters, func(k uuid.UUID, v model.Monster) model.Monster {
+			return v
+		})
+
+		friendMonsters := model.MyMonsters{
+			Monsters: monsters,
 		}
 
-		value := []model.Monster{}
-		if steal == "true" {
-			for _, v := range monsters {
-				new := model.Monster{
-					ID:                 v.ID,
-					Name:               v.Name,
-					MonsterType:        v.MonsterType,
-					StealChangeSuccess: v.StealChangeSuccess,
-					KillChangeSuccess:  v.KillChangeSuccess,
-				}
-				value = append(value, new)
-			}
+		userID, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
+		if !ok {
+			return "false", errors.New("errNoUserIdFound")
+		}
 
-			myMonsters := model.MyMonsters{Monsters: value}
-			objectFriend := []*runtime.StorageWrite{
-				{
-					Collection:      "Monsters",
-					Key:             "MyMonsters",
-					UserID:          p.OwnerID,
-					Value:           string(lo.Must1(json.Marshal(myMonsters))),
-					PermissionWrite: 1,
-					PermissionRead:  2,
-				},
-			}
+		myMonsters := &model.MyMonsters{
+			Monsters: make([]model.Monster, 0),
+		}
 
-			if _, err := nk.StorageWrite(ctx, objectFriend); err != nil {
-				logger.WithField("err", err).Error("Storage write error.")
-			}
+		records, err := nk.StorageRead(ctx, []*runtime.StorageRead{
+			{
+				Collection: constant.Collection_Monsters,
+				Key:        constant.Key_MyMonsters,
+				UserID:     userID,
+			},
+		})
+		if err != nil {
+			logger.WithField("err", err).Error(err.Error())
+			return utility.Response(myMonsters), err
+		}
 
-			userID, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
-			if !ok {
-				return "", errors.New("errNoUserIdFound")
-			}
+		if err := json.Unmarshal([]byte(records[0].Value), myMonsters); err != nil {
+			logger.WithField("err", err).Error("JSON unmarshal error.")
+			return utility.Response(myMonsters), err
+		}
 
-			objectIds := []*runtime.StorageRead{
-				{
-					Collection: constant.Collection_Monsters,
-					Key:        constant.Key_MyMonsters,
-					UserID:     userID,
-				},
-			}
+		myMonsters.Monsters = append(myMonsters.Monsters, monster)
 
-			res := &model.MyMonsters{
-				Monsters: make([]model.Monster, 0),
-			}
-
-			records, err := nk.StorageRead(ctx, objectIds)
-			if err != nil {
-				logger.WithField("err", err).Error("Storage read error.")
-				return utility.Response(res), err
-			}
-
-			if err := json.Unmarshal([]byte(records[0].Value), res); err != nil {
-				logger.WithField("err", err).Error("JSON unmarshal error.")
-				return utility.Response(res), err
-			}
-
-			res.Monsters = append(res.Monsters, monster)
-
-			objectUpdate := []*runtime.StorageWrite{
-				{
-					Collection:      constant.Collection_Monsters,
-					Key:             constant.Key_MyMonsters,
-					UserID:          userID,
-					Value:           string(lo.Must1(json.Marshal(res))),
-					PermissionWrite: 1,
-					PermissionRead:  2,
-				},
-			}
-
-			if _, err := nk.StorageWrite(ctx, objectUpdate); err != nil {
-				logger.WithField("err", err).Error("Storage write error.")
-			}
+		if _, err := nk.StorageWrite(ctx, []*runtime.StorageWrite{
+			{
+				Collection:      constant.Collection_Monsters,
+				Key:             constant.Key_MyMonsters,
+				UserID:          p.OwnerID,
+				Value:           string(lo.Must1(json.Marshal(friendMonsters))),
+				PermissionWrite: 1,
+				PermissionRead:  2,
+			},
+			{
+				Collection:      constant.Collection_Monsters,
+				Key:             constant.Key_MyMonsters,
+				UserID:          userID,
+				Value:           string(lo.Must1(json.Marshal(myMonsters))),
+				PermissionWrite: 1,
+				PermissionRead:  2,
+			},
+		}); err != nil {
+			logger.WithField("err", err).Error("Storage write error.")
+			return steal, err
 		}
 	}
 
