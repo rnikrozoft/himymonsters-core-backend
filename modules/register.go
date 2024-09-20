@@ -7,7 +7,7 @@ import (
 	"errors"
 
 	"github.com/heroiclabs/nakama-common/runtime"
-	"github.com/rnikrozoft/hellomymonsters-backend/model"
+	"github.com/rnikrozoft/himymonsters-core-backend/model"
 	"github.com/samber/lo"
 )
 

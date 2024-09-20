@@ -1,4 +1,4 @@
-module github.com/rnikrozoft/hellomymonsters-backend
+module github.com/rnikrozoft/himymonsters-core-backend
 
 go 1.21.2
 

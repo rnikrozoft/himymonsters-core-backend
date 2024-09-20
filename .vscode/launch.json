@@ -13,7 +13,7 @@
             "substitutePath": [
                 { 
                     "from": "${workspaceFolder}",
-                    "to": "github.com/rnikrozoft/hellomymonsters-backend"
+                    "to": "github.com/rnikrozoft/himymonsters-core-backend"
                 },
             ]
         }

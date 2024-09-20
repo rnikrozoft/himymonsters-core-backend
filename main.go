@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/heroiclabs/nakama-common/runtime"
-	"github.com/rnikrozoft/hellomymonsters-backend/modules"
+	"github.com/rnikrozoft/himymonsters-core-backend/modules"
 )
 
 // noinspection GoUnusedExportedFunction

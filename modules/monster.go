@@ -10,9 +10,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/heroiclabs/nakama-common/runtime"
 	"github.com/mroth/weightedrand/v2"
-	"github.com/rnikrozoft/hellomymonsters-backend/constant"
-	"github.com/rnikrozoft/hellomymonsters-backend/model"
-	"github.com/rnikrozoft/hellomymonsters-backend/utility"
+	"github.com/rnikrozoft/himymonsters-core-backend/constant"
+	"github.com/rnikrozoft/himymonsters-core-backend/model"
+	"github.com/rnikrozoft/himymonsters-core-backend/utility"
 	"github.com/samber/lo"
 )
 
