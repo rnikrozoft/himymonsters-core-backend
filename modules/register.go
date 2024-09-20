@@ -54,8 +54,8 @@ func RpcUserRegister(ctx context.Context, logger runtime.Logger, db *sql.DB, nk 
 			{
 				UserID: userID,
 				Changeset: map[string]int64{
-					"coin":    1000,
-					"dimonds": 100,
+					"coin":   1000,
+					"dimond": 100,
 				},
 			},
 		}
