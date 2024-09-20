@@ -42,40 +42,76 @@ func RpcFreeGachapon(ctx context.Context, logger runtime.Logger, db *sql.DB, nk 
 
 	monsterList := []model.Monster{
 		{
-			Name:               "fallen_1",
-			MonsterType:        "fallen_1",
-			StealChangeSuccess: rand.Intn(10),
-			KillChangeSuccess:  rand.Intn(10),
+			Name:        "fallen_1",
+			MonsterType: "fallen_1",
+			Steal: model.StealOrKillSettings{
+				RateSuccess: rand.Intn(10),
+				Price:       int64(rand.Intn(10)),
+			},
+			Kill: model.StealOrKillSettings{
+				RateSuccess: rand.Intn(10),
+				Price:       int64(rand.Intn(10)),
+			},
 		},
 		{
-			Name:               "golem_3",
-			MonsterType:        "golem_3",
-			StealChangeSuccess: rand.Intn(10),
-			KillChangeSuccess:  rand.Intn(10),
+			Name:        "golem_3",
+			MonsterType: "golem_3",
+			Steal: model.StealOrKillSettings{
+				RateSuccess: rand.Intn(10),
+				Price:       int64(rand.Intn(10)),
+			},
+			Kill: model.StealOrKillSettings{
+				RateSuccess: rand.Intn(10),
+				Price:       int64(rand.Intn(10)),
+			},
 		},
 		{
-			Name:               "minotaur_3",
-			MonsterType:        "minotaur_3",
-			StealChangeSuccess: rand.Intn(10),
-			KillChangeSuccess:  rand.Intn(10),
+			Name:        "minotaur_3",
+			MonsterType: "minotaur_3",
+			Steal: model.StealOrKillSettings{
+				RateSuccess: rand.Intn(10),
+				Price:       int64(rand.Intn(10)),
+			},
+			Kill: model.StealOrKillSettings{
+				RateSuccess: rand.Intn(10),
+				Price:       int64(rand.Intn(10)),
+			},
 		},
 		{
-			Name:               "reaperman_1",
-			MonsterType:        "reaperman_1",
-			StealChangeSuccess: rand.Intn(10),
-			KillChangeSuccess:  rand.Intn(10),
+			Name:        "reaperman_1",
+			MonsterType: "reaperman_1",
+			Steal: model.StealOrKillSettings{
+				RateSuccess: rand.Intn(10),
+				Price:       int64(rand.Intn(10)),
+			},
+			Kill: model.StealOrKillSettings{
+				RateSuccess: rand.Intn(10),
+				Price:       int64(rand.Intn(10)),
+			},
 		},
 		{
-			Name:               "reaperman_2",
-			MonsterType:        "reaperman_2",
-			StealChangeSuccess: rand.Intn(10),
-			KillChangeSuccess:  rand.Intn(10),
+			Name:        "reaperman_2",
+			MonsterType: "reaperman_2",
+			Steal: model.StealOrKillSettings{
+				RateSuccess: rand.Intn(10),
+				Price:       int64(rand.Intn(10)),
+			},
+			Kill: model.StealOrKillSettings{
+				RateSuccess: rand.Intn(10),
+				Price:       int64(rand.Intn(10)),
+			},
 		},
 		{
-			Name:               "reaperman_3",
-			MonsterType:        "reaperman_3",
-			StealChangeSuccess: rand.Intn(10),
-			KillChangeSuccess:  rand.Intn(10),
+			Name:        "reaperman_3",
+			MonsterType: "reaperman_3",
+			Steal: model.StealOrKillSettings{
+				RateSuccess: rand.Intn(10),
+				Price:       int64(rand.Intn(10)),
+			},
+			Kill: model.StealOrKillSettings{
+				RateSuccess: rand.Intn(10),
+				Price:       int64(rand.Intn(10)),
+			},
 		},
 	}
 
