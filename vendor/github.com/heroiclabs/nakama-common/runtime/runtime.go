@@ -90,6 +90,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	"os"
 	"time"
 
@@ -170,6 +171,8 @@ var (
 
 	ErrFriendInvalidCursor = errors.New("friend cursor invalid")
 
+	ErrLeaderboardNotFound = errors.New("leaderboard not found")
+
 	ErrTournamentNotFound                = errors.New("tournament not found")
 	ErrTournamentAuthoritative           = errors.New("tournament only allows authoritative submissions")
 	ErrTournamentMaxSizeReached          = errors.New("tournament max size reached")
@@ -196,6 +199,8 @@ var (
 	ErrPartyAcceptRequest            = errors.New("party could not accept request")
 	ErrPartyRemove                   = errors.New("party could not remove")
 	ErrPartyRemoveSelf               = errors.New("party cannot remove self")
+
+	ErrGracePeriodExpired = errors.New("grace period expired")
 
 	ErrGroupNameInUse         = errors.New("group name in use")
 	ErrGroupPermissionDenied  = errors.New("group permission denied")
@@ -668,6 +673,12 @@ type Initializer interface {
 	// RegisterAfterListMatches can be used to perform additional logic after listing matches.
 	RegisterAfterListMatches(fn func(ctx context.Context, logger Logger, db *sql.DB, nk NakamaModule, out *api.MatchList, in *api.ListMatchesRequest) error) error
 
+	// RegisterBeforeMatchmakerStats is used to register a function invoked when the server receives the relevant request.
+	RegisterBeforeGetMatchmakerStats(fn func(ctx context.Context, logger Logger, db *sql.DB, nk NakamaModule) error) error
+
+	// RegisterAfterMarchmakerStats is used to register a function invoked after the server processes the relevant request.
+	RegisterAfterGetMatchmakerStats(fn func(ctx context.Context, logger Logger, db *sql.DB, nk NakamaModule, out *api.MatchmakerStats) error) error
+
 	// RegisterBeforeListNotifications can be used to perform additional logic before listing notifications for a user.
 	RegisterBeforeListNotifications(fn func(ctx context.Context, logger Logger, db *sql.DB, nk NakamaModule, in *api.ListNotificationsRequest) (*api.ListNotificationsRequest, error)) error
 
@@ -947,6 +958,17 @@ type NotificationDelete struct {
 	NotificationID string
 }
 
+type Notification struct {
+	Id         string
+	UserID     string
+	Subject    string
+	Content    map[string]any
+	Code       int
+	Sender     string
+	CreateTime *timestamppb.Timestamp
+	Persistent bool
+}
+
 type WalletUpdate struct {
 	UserID    string
 	Changeset map[string]int64
@@ -1083,6 +1105,8 @@ type NakamaModule interface {
 	NotificationsSend(ctx context.Context, notifications []*NotificationSend) error
 	NotificationSendAll(ctx context.Context, subject string, content map[string]interface{}, code int, persistent bool) error
 	NotificationsDelete(ctx context.Context, notifications []*NotificationDelete) error
+	NotificationsGetId(ctx context.Context, userID string, ids []string) ([]*Notification, error)
+	NotificationsDeleteId(ctx context.Context, userID string, ids []string) error
 
 	WalletUpdate(ctx context.Context, userID string, changeset map[string]int64, metadata map[string]interface{}, updateLedger bool) (updated map[string]int64, previous map[string]int64, err error)
 	WalletsUpdate(ctx context.Context, updates []*WalletUpdate, updateLedger bool) ([]*WalletUpdateResult, error)
@@ -1097,9 +1121,10 @@ type NakamaModule interface {
 
 	MultiUpdate(ctx context.Context, accountUpdates []*AccountUpdate, storageWrites []*StorageWrite, storageDeletes []*StorageDelete, walletUpdates []*WalletUpdate, updateLedger bool) ([]*api.StorageObjectAck, []*WalletUpdateResult, error)
 
-	LeaderboardCreate(ctx context.Context, id string, authoritative bool, sortOrder, operator, resetSchedule string, metadata map[string]interface{}) error
+	LeaderboardCreate(ctx context.Context, id string, authoritative bool, sortOrder, operator, resetSchedule string, metadata map[string]interface{}, enableRanks bool) error
 	LeaderboardDelete(ctx context.Context, id string) error
 	LeaderboardList(limit int, cursor string) (*api.LeaderboardList, error)
+	LeaderboardRanksDisable(ctx context.Context, id string) error
 	LeaderboardRecordsList(ctx context.Context, id string, ownerIDs []string, limit int, cursor string, expiry int64) (records []*api.LeaderboardRecord, ownerRecords []*api.LeaderboardRecord, nextCursor string, prevCursor string, err error)
 	LeaderboardRecordsListCursorFromRank(id string, rank, overrideExpiry int64) (string, error)
 	LeaderboardRecordWrite(ctx context.Context, id, ownerID, username string, score, subscore int64, metadata map[string]interface{}, overrideOperator *int) (*api.LeaderboardRecord, error)
@@ -1125,12 +1150,13 @@ type NakamaModule interface {
 	SubscriptionsList(ctx context.Context, userID string, limit int, cursor string) (*api.SubscriptionList, error)
 	SubscriptionGetByProductId(ctx context.Context, userID, productID string) (*api.ValidatedSubscription, error)
 
-	TournamentCreate(ctx context.Context, id string, authoritative bool, sortOrder, operator, resetSchedule string, metadata map[string]interface{}, title, description string, category, startTime, endTime, duration, maxSize, maxNumScore int, joinRequired bool) error
+	TournamentCreate(ctx context.Context, id string, authoritative bool, sortOrder, operator, resetSchedule string, metadata map[string]interface{}, title, description string, category, startTime, endTime, duration, maxSize, maxNumScore int, joinRequired, enableRanks bool) error
 	TournamentDelete(ctx context.Context, id string) error
 	TournamentAddAttempt(ctx context.Context, id, ownerID string, count int) error
 	TournamentJoin(ctx context.Context, id, ownerID, username string) error
 	TournamentsGetId(ctx context.Context, tournamentIDs []string) ([]*api.Tournament, error)
 	TournamentList(ctx context.Context, categoryStart, categoryEnd, startTime, endTime, limit int, cursor string) (*api.TournamentList, error)
+	TournamentRanksDisable(ctx context.Context, id string) error
 	TournamentRecordsList(ctx context.Context, tournamentId string, ownerIDs []string, limit int, cursor string, overrideExpiry int64) (records []*api.LeaderboardRecord, ownerRecords []*api.LeaderboardRecord, prevCursor string, nextCursor string, err error)
 	TournamentRecordWrite(ctx context.Context, id, ownerID, username string, score, subscore int64, metadata map[string]interface{}, operatorOverride *int) (*api.LeaderboardRecord, error)
 	TournamentRecordDelete(ctx context.Context, id, ownerID string) error
