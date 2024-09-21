@@ -20,6 +20,7 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 		"free_gachapon":      modules.RpcFreeGachapon,
 		"cheat_add_monsters": modules.RpcCheatAddMonsters,
 		"steal_monster":      modules.RpcStealMonster,
+		"get_shop":           modules.RpcGetShop,
 	}
 
 	for name, handler := range rpcRegistrations {

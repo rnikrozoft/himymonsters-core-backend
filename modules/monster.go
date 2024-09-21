@@ -100,12 +100,7 @@ func RpcGetMonsters(ctx context.Context, logger runtime.Logger, db *sql.DB, nk r
 		return utility.Response(res), nil
 	}
 
-	if err := json.Unmarshal([]byte(records[0].Value), res); err != nil {
-		logger.WithField("err", err).Error(err.Error())
-		return utility.Response(res), err
-	}
-
-	return utility.Response(res), nil
+	return records[0].GetValue(), nil
 }
 
 func RpcKillMonster(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
