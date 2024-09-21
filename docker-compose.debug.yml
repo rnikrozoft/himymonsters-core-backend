@@ -1,19 +1,4 @@
-version: '3'
 services:
-  postgres:
-    command: postgres -c shared_preload_libraries=pg_stat_statements -c pg_stat_statements.track=all
-    environment:
-      - POSTGRES_DB=nakama
-      - POSTGRES_PASSWORD=localdb
-    expose:
-      - "8080"
-      - "5432"
-    image: postgres:12.2-alpine
-    ports:
-      - "5432:5432"
-      - "8080:8080"
-    volumes:
-      - data:/var/lib/postgresql/data
   nakama:
     build:
         context: .
@@ -24,8 +9,6 @@ services:
       - >
         /nakama/nakama migrate up --database.address postgres:localdb@postgres:5432/nakama &&
         /nakama/dlv --log --log-output=debugger --listen=:4000 --headless=true --api-version=2 exec nakama -- --config /nakama/data/local.yml --database.address postgres:localdb@postgres:5432/nakama        
-    depends_on:
-      - postgres
     expose:
       - "7349"
       - "7350"
@@ -36,8 +19,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    links:
-      - "postgres:db"
     ports:
       - "7349:7349"
       - "7350:7350"
@@ -45,9 +26,15 @@ services:
       - "2345:2345"
       - "4000:4000"
     restart: unless-stopped
+    networks:
+      - himymonsters
     security_opt:
       - "seccomp:unconfined"
     stdin_open: true
     tty: true
 volumes:
   data:
+
+networks:
+  himymonsters:
+    external: true
